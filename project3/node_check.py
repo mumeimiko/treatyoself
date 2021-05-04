@@ -1,6 +1,6 @@
 #Author Mumeimiko Email@ mumeimiko@yahoo.com
 #tl:dr check kubernetes nodes from k8s and marks them as unhealthy and delete them
-#v.1.1.0
+#v.1.1.2
 from kubernetes import client, config
 import json, array, boto3
 
@@ -12,7 +12,7 @@ good_nodes = []
 v1 = client.CoreV1Api()
 ret = v1.list_node(watch=False)
 
-#For loop that looks at each node 
+#15-39 For loop that looks at each node 
 for i in ret.items:
     
     node = i.metadata.name
