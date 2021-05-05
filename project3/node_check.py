@@ -1,57 +1,61 @@
-#Author Mumeimiko Email@ mumeimiko@yahoo.com
-#tl:dr check kubernetes nodes from k8s and marks them as unhealthy and delete them
 #v.1.1.2
 from kubernetes import client, config
-import json, array, boto3
+
+import json 
+import array 
+import boto3 
+import re
+import pprint
 
 #8-13 Getting stuff ready 
-client2 = boto3.client('autoscaling')
-config.load_kube_config()
-bad_nodes = []
-good_nodes = []
-v1 = client.CoreV1Api()
-ret = v1.list_node(watch=False)
+ec2 = boto3.client('ec2')
+kubecfg = config.load_kube_config()
+k8s_api = client.CoreV1Api()
+list_node = k8s_api.list_node(watch=False, _preload_content=False)
+http_decode = list_node.data.decode('utf8')
+pp = pprint.PrettyPrinter(indent=4)
 
 #15-39 For loop that looks at each node 
-for i in ret.items:
-    
-    node = i.metadata.name
-    print( f'EKS Node in question: {i.metadata.name} ')
-    print( f'EC2 in question: {i.spec.provider_id} ')
-    if "fargate" in i.spec.provider_id:
-        print("This is a fargate node, ignoring")
-    else:
-        print("EC2 Node")
-        #Locates the instance id
-        ec2_node = i.spec.provider_id.split("/", 4)
-        node = ec2_node[4]
-    #29-32 Grab the Node Status from an EKS Standpoint
-    test = i.status.conditions[-1:]
-    test2=str(test)
-    status = (test2.splitlines()[4])
-    type = (test2.splitlines()[5])
-    #24-39 Will append the node to the Bad/Good Node List
-    if "True" in status:
-        print ('Node Currently is in a Ready Status')
-        good_nodes.append(node)
-    else:
-        print ('Node Currently is having issues')
-        bad_nodes.append(node)
-#41-45 print the current nodes
-print("Currently the good nodes are:")
-print (good_nodes)
+def node_status(http_decode):
+    unhealthy_nodes = []
+    healthy_nodes = []
+    dict_obj = json.loads(http_decode)
+    data = dict_obj['items']
+    for i in data:
+        node_info = {'instance_id': '', 'health_status': ''}
+        k8s_node = i['metadata']['name']
+        if re.search("fargate", k8s_node):
+            pass
+        else:
+            provider_id = i['spec']['providerID'].split("/", 4)
+            instance_id = provider_id[4]
+            status = i['status']['conditions'][3]
+            if status['status'] == 'True':
+                node_info = {'instance_id': instance_id, "health_status": status['reason']}
+                healthy_nodes.append(node_info)
+            else:
+                node_info = {'instance_id': instance_id, "health_status": status['reason']}
+                unhealthy_nodes.append(node_info)
+    determine_health(unhealthy_nodes, healthy_nodes)
 
-print("Currently the bad nodes are:")
-print (bad_nodes)
+def determine_health(unhealthy_nodes, healthy_nodes):
+    print(f'These nodes are currently healthy: {healthy_nodes}')
+    if len(unhealthy_nodes) != 0:
+        print(f'there is {len(unhealthy_nodes)} unhealthy nodes, terminating them')
+        ec2_asg_call(unhealthy_nodes)
+    else:
+        print(f'there are {len(unhealthy_nodes)} unhealthy nodes, nothing to do')
 
 #48-57 Marking the nodes as unhealthy via the ASG
-if len(bad_nodes) == 0:
-    print("All nodes are marked as Ready")
-else:
-    for i in len(bad_nodes):
-        client2.set_instance_health(
-            HealthStatus='Unhealthy',
-            InstanceId=bad_nodes[i],
-            ShouldRespectGracePeriod=False
-        )
-        print("Terminating: " + bad_nodes[i] )
+def ec2_asg_call(unhealthy_nodes):
+    instance_ids = []
+    for i in unhealthy_nodes:
+        instance_ids.append(i['instance_id'])
+    print(f'There is {len(instance_ids)} to terminate')
+    response = client.terminate_instances(
+        InstanceIds=[
+        'string',
+        ],
+        DryRun=False
+    )
+    print(f"Terminating: {instance_ids}" )
