@@ -60,3 +60,6 @@ def ec2_asg_call(unhealthy_nodes):
         DryRun=False
     )
     print(f"Terminating: {instance_ids}" )
+
+if __name__ == "__main__":
+    node_status(http_decode)
