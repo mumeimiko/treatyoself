@@ -54,9 +54,7 @@ def ec2_asg_call(unhealthy_nodes):
         instance_ids.append(i['instance_id'])
     print(f'There is {len(instance_ids)} to terminate')
     response = client.terminate_instances(
-        InstanceIds=[
-            instance_ids,
-        ],
+        InstanceIds=instance_ids,
         DryRun=False
     )
     print(f"Terminating: {instance_ids}" )
