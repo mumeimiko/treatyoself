@@ -7,7 +7,7 @@ import boto3
 import re
 import pprint
 
-#8-13 Getting stuff ready 
+# Need to drop some globs once the logic is fully tested 
 ec2 = boto3.client('ec2')
 kubecfg = config.load_kube_config()
 k8s_api = client.CoreV1Api()
@@ -15,7 +15,7 @@ list_node = k8s_api.list_node(watch=False, _preload_content=False)
 http_decode = list_node.data.decode('utf8')
 pp = pprint.PrettyPrinter(indent=4)
 
-#15-39 For loop that looks at each node 
+# 18-39 cleaned up eval logic, will now ignore fargate nodes in the top for loop 
 def node_status(http_decode):
     unhealthy_nodes = []
     healthy_nodes = []
@@ -38,6 +38,7 @@ def node_status(http_decode):
                 unhealthy_nodes.append(node_info)
     determine_health(unhealthy_nodes, healthy_nodes)
 
+# 41-48 prints statuses for healthy/unhealthy nodes, makes the call to term here
 def determine_health(unhealthy_nodes, healthy_nodes):
     print(f'These nodes are currently healthy: {healthy_nodes}')
     if len(unhealthy_nodes) != 0:
@@ -46,7 +47,7 @@ def determine_health(unhealthy_nodes, healthy_nodes):
     else:
         print(f'there are {len(unhealthy_nodes)} unhealthy nodes, nothing to do')
 
-#48-57 Marking the nodes as unhealthy via the ASG
+# 51-62 this is only called when there is unhealthy nodes, terms in a batch 
 def ec2_asg_call(unhealthy_nodes):
     instance_ids = []
     for i in unhealthy_nodes:
