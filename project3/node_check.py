@@ -6,14 +6,14 @@ import array
 import boto3
 import re
 
-# Need to drop some globs
+# globs
 ec2 = boto3.client('ec2')
 kubecfg = config.load_kube_config()
 k8s_api = client.CoreV1Api()
 list_node = k8s_api.list_node(watch=False, _preload_content=False)
 http_decode = list_node.data.decode('utf8')
 
-# 18-39 cleaned up eval logic, will now ignore fg nodes
+# 19 -52 eval logic
 
 
 def node_status(http_decode):
@@ -51,7 +51,7 @@ def node_status(http_decode):
         healthy_nodes
     )
 
-# 41-48 determines what node to terminate
+# 56-64 determines what node to terminate
 
 
 def determine_health(unhealthy_nodes, healthy_nodes):
@@ -64,19 +64,18 @@ def determine_health(unhealthy_nodes, healthy_nodes):
     else:
         print(f'there are {uh_nodes_count} unhealthy nodes, nothing to do')
 
-# 51-62 this is only called when there is unhealthy nodes, terms in a batch
+# 69-81 this is only called when there is unhealthy nodes, terms in a batch
 
 
 def ec2_asg_call(unhealthy_nodes):
     instance_ids = []
     for i in unhealthy_nodes:
         instance_ids.append(i['instance_id'])
-    print(f'There is {len(instance_ids)} to terminate')
     response = ec2.terminate_instances(
         InstanceIds=instance_ids,
         DryRun=False
     )
-    print(f"Terminating: {instance_ids}")
+    print(f'Terminating the following nodes: {instance_ids}')
 
 if __name__ == "__main__":
     node_status(http_decode)
