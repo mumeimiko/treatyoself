@@ -29,19 +29,23 @@ def node_status(http_decode):
         else:
             provider_id = i['spec']['providerID'].split("/", 4)
             instance_id = provider_id[4]
-            status = i['status']['conditions'][3]
-            if status['status'] == 'True':
-                node_info = {
-                    'instance_id': instance_id,
-                    "health_status": status['reason']
-                }
-                healthy_nodes.append(node_info)
-            else:
-                node_info = {
-                    'instance_id': instance_id,
-                    "health_status": status['reason']
-                }
-                unhealthy_nodes.append(node_info)
+            status = i['status']['conditions']
+            for i in status:
+                if i['type'] == 'Ready':
+                    if i['reason'] == 'NodeStatusUnknown':
+                        node_info = {
+                            'instance_id': instance_id,
+                            "health_status": i['reason']
+                        }
+                        unhealthy_nodes.append(node_info)
+                    elif i['reason'] == 'KubeletReady':
+                        node_info = {
+                            'instance_id': instance_id,
+                            "health_status": i['reason']
+                        }
+                        healthy_nodes.append(node_info)
+                else:
+                    pass
     determine_health(
         unhealthy_nodes,
         healthy_nodes
@@ -53,6 +57,7 @@ def node_status(http_decode):
 def determine_health(unhealthy_nodes, healthy_nodes):
     uh_nodes_count = len(unhealthy_nodes)
     print(f'These nodes are currently healthy: {healthy_nodes}')
+    print(f'These nodes are currently unhealthy: {unhealthy_nodes}')
     if uh_nodes_count != 0:
         print(f'there is {uh_nodes_count} unhealthy nodes, terminating them')
         ec2_asg_call(unhealthy_nodes)
@@ -67,7 +72,7 @@ def ec2_asg_call(unhealthy_nodes):
     for i in unhealthy_nodes:
         instance_ids.append(i['instance_id'])
     print(f'There is {len(instance_ids)} to terminate')
-    response = client.terminate_instances(
+    response = ec2.terminate_instances(
         InstanceIds=instance_ids,
         DryRun=False
     )
