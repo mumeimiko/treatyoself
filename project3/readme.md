@@ -11,3 +11,14 @@ This script does the following, in order:
 8. this function starts by printing healthy nodes, and if the length of the unhealthy nodes array isn't equal to 0 it calls a function to terminate the instances 
 9. the function to terminate is only called when there is unhealthy instances, instead of making 1 api call for each instance in the list, I batched them and instead call the `terminate_instances` method so that we can terminate the unhealthy nodes in one go (this reduces the number of API calls made)
 
+1.1.3 Release Notes
+
+1. Added Termination Flag:
+  - If set to true, Nodes are Marked for termination on the ASG.
+  - If set to False, Nodes are not marked for termination on the ASG
+2. Added a CloudWatch Flag which allows you to push CW metrics based on Ready and Not Ready Statuses on the Nodes 
+  - This in turn can be added as a CloudWatch alarm to trigger when a node is not passing its health checks 
+
+Notes:
+
+By default, both Flags are set to false to give you the ability to either terminate the nodes immediately or raise an alarm to investigate the node in question for any issues that you can try to remediate. 
