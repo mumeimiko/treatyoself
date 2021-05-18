@@ -1,17 +1,16 @@
 from kubernetes import client, config
 from botocore.exceptions import ClientError
-import boto3
-import base64, json
-#Blah
+import boto3, base64, json
+#Blah blah blah
 kubecfg = config.load_kube_config()
 k8s_api = client.CoreV1Api()
 sec  = client.V1Secret()
 k8s_namespace = 'default'
-username = 'username_sql'
-password = 'password_sql'
-region_name = "us-west-1"
+region_name = "us-west-1" # Set region Username and Password located in
+username = 'username_sql' # Secrets Manager name that has the username
+password = 'password_sql' # Secrets Manager name that has the password
 
-def get_secret():
+def get_secret(): #Grab Username/Password from Secret Manager
     session = boto3.session.Session()
     client = session.client(
         service_name='secretsmanager',
@@ -50,13 +49,15 @@ def get_secret():
         if 'SecretString' in get_secret_value_response_1:
             secret_usr = get_secret_value_response_1['SecretString']
             secret_pwd = get_secret_value_response_2['SecretString']
-            create_secret_agent(secret_usr,secret_pwd)
+            create_secret_agent(secret_usr,secret_pwd) 
         else:
             decoded_binary_secret = base64.b64decode(get_secret_value_response_1['SecretBinary'])
 
-def create_secret_agent(secret_usr,secret_pwd):
+def create_secret_agent(secret_usr,secret_pwd): #Creates k8s Secrets based on the values grabbed from Secrets Manager
     print("Creating k8s Secret")
-    sec.metadata = client.V1ObjectMeta(name="mysecret")
+    print(secret_usr)
+    print(secret_pwd)
+    sec.metadata = client.V1ObjectMeta(name="mysecret") #name of the secret that will be created is mysecret
     sec.type = "Opaque"
     sec.data = {"username": secret_usr, "password": secret_pwd}
     k8s_api.create_namespaced_secret(namespace=k8s_namespace, body=sec)
