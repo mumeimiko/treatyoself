@@ -54,9 +54,6 @@ def get_secret(): #Grab Username/Password from Secret Manager
             decoded_binary_secret = base64.b64decode(get_secret_value_response_1['SecretBinary'])
 
 def create_secret_agent(secret_usr,secret_pwd): #Creates k8s Secrets based on the values grabbed from Secrets Manager
-    print("Creating k8s Secret")
-    print(secret_usr)
-    print(secret_pwd)
     sec.metadata = client.V1ObjectMeta(name="mysecret") #name of the secret that will be created is mysecret
     sec.type = "Opaque"
     sec.data = {"username": secret_usr, "password": secret_pwd}
