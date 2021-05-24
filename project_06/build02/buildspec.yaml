@@ -15,7 +15,6 @@ phases:
       - export PATH=$PWD/:$PATH
       - pip install kubernetes
       - aws --version
-      - aws ec2 describe-regions
       - aws eks update-kubeconfig --region us-west-1 --name cluster1 --role-arn arn:aws:iam::123456789:role/EksCodeBuildkubectlRole55 #update this with your arn
       - ls -l
       - sleep 10
